@@ -19,7 +19,7 @@ pipeline {
 
         stage('Clean and Package') {
             steps {
-                sh 'mvn clean install -DskipTests=true -DargLine="--add-opens java.base/java.lang=ALL-UNNAMED" '
+                sh 'mvn clean install -DskipTests=true '
 
             }
         }
