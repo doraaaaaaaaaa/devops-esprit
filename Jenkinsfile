@@ -7,18 +7,17 @@ pipeline {
                 echo 'Pulling ...'
                 git branch: 'main',
                     url: 'https://github.com/doraaaaaaaaaa/stage-devops'
-                sh 'git branch -a'
-                sh 'git status'
+                sh 'pwd'              // Print the working directory
+                sh 'ls -la'           // List all files to ensure Dockerfile is present
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build the Docker image
                     def customImage = 'custom-maven-jdk22:latest'
                     echo 'Building Docker image...'
-                    sh "docker build -t ${customImage} ."
+                    sh 'docker build -t ${customImage} .'
                 }
             }
         }
