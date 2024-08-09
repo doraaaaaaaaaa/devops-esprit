@@ -5,7 +5,8 @@ pipeline {
         stage('Checkout GIT') {
             steps {
                 echo 'Pulling ...'
-                git branch: 'main', url: 'https://github.com/doraaaaaaaaaa/devops-esprit.git'
+                git branch: 'main',
+                    url: 'https://github.com/doraaaaaaaaaa/stage-devops'
                 sh 'git branch -a'
                 sh 'git status'
             }
@@ -14,20 +15,10 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    def imageName = 'custom-maven-jdk22'
-                    def imageTag = 'latest'
-                    
-                    // Check if the Docker image exists
-                    def imageExists = sh(script: "docker images -q ${imageName}:${imageTag}", returnStatus: true) == 0
-                    
-                    if (!imageExists) {
-                        echo "Docker image ${imageName}:${imageTag} does not exist. Building the image..."
-                        sh '''
-                        docker build -t ${imageName}:${imageTag} -f Dockerfile .
-                        '''
-                    } else {
-                        echo "Docker image ${imageName}:${imageTag} already exists."
-                    }
+                    // Build the Docker image
+                    def customImage = 'custom-maven-jdk22:latest'
+                    echo 'Building Docker image...'
+                    sh "docker build -t ${customImage} ."
                 }
             }
         }
@@ -35,27 +26,33 @@ pipeline {
         stage('Testing Maven') {
             steps {
                 script {
-                    docker.image('custom-maven-jdk22:latest').inside('-v /root/.m2:/root/.m2') {
+                    def customImage = 'custom-maven-jdk22:latest'
+                    echo 'Running Maven version check inside Docker container...'
+                    docker.image(customImage).inside {
                         sh 'mvn -version'
                     }
                 }
             }
         }
-        
+
         stage('Build') {
             steps {
                 script {
-                    docker.image('custom-maven-jdk22:latest').inside('-v /root/.m2:/root/.m2') {
+                    def customImage = 'custom-maven-jdk22:latest'
+                    echo 'Building the project inside Docker container...'
+                    docker.image(customImage).inside {
                         sh 'mvn -B -DskipTests clean package'
                     }
                 }
             }
         }
-        
+
         stage('Test') {
             steps {
                 script {
-                    docker.image('custom-maven-jdk22:latest').inside('-v /root/.m2:/root/.m2') {
+                    def customImage = 'custom-maven-jdk22:latest'
+                    echo 'Running tests inside Docker container...'
+                    docker.image(customImage).inside {
                         sh 'mvn test'
                     }
                 }
@@ -65,6 +62,13 @@ pipeline {
                     junit 'target/surefire-reports/*.xml'
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up Docker images...'
+            sh 'docker system prune -f'
         }
     }
 }
