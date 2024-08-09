@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub'),
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
         SONAR_CREDENTIALS = credentials('sonar_jenkins')
         // NEXUS_CREDENTIALS = credentials('nexus')
     }
