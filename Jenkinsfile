@@ -11,18 +11,12 @@ pipeline {
                 sh 'git status'
             }
         }
-        stage('clean Maven') {
-            steps {
-                        sh 'mvn clean'
-                    }
-            
-        }
 
         
         stage('Testing Maven') {
             steps {
                 script {
-                    docker.image('maven:3.8.1-adoptopenjdk-11').inside('-v /root/.m2:/root/.m2') {
+                    docker.image('maven:3.8.1-adoptopenjdk-22').inside('-v /root/.m2:/root/.m2') {
                         sh 'mvn -version'
                     }
                 }
@@ -31,7 +25,7 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    docker.image('maven:3.8.1-adoptopenjdk-11').inside('-v /root/.m2:/root/.m2') {
+                    docker.image('maven:3.8.1-adoptopenjdk-22').inside('-v /root/.m2:/root/.m2') {
                         sh 'mvn -B -DskipTests clean package'
                     }
                 }
@@ -40,7 +34,7 @@ pipeline {
         stage('Test') {
             steps {
                 script {
-                    docker.image('maven:3.8.1-adoptopenjdk-11').inside('-v /root/.m2:/root/.m2') {
+                    docker.image('maven:3.8.1-adoptopenjdk-22').inside('-v /root/.m2:/root/.m2') {
                         sh 'mvn test'
                     }
                 }
