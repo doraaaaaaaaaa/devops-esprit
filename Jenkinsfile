@@ -34,10 +34,10 @@ pipeline {
 
         stage('SonarQube') {
             steps {
-                withSonarQubeEnv('sonarqube:8.9.7-community') {
+                // withSonarQubeEnv('sonarqube:8.9.7-community') {
                     sh 'mvn verify -DskipTests=true'
                     sh 'mvn sonar:sonar'
-                }
+                // }
             }
         }
 
