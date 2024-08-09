@@ -1,9 +1,8 @@
 pipeline {
     agent any 
         tools { 
-        maven "M2_HOME",
-            
-        jdk 'jdk-22' // Or another supported JDK
+        maven "M2_HOME"
+        jdk "jdk-22"
     
         
     }   
