@@ -22,6 +22,7 @@ pipeline {
         stage('Clean and Package') {
             steps {
                 sh 'mvn clean install -DskipTests=true -U'
+
             }
         }
 
@@ -33,10 +34,10 @@ pipeline {
 
         stage('SonarQube') {
             steps {
-                withSonarQubeEnv('sonarqube') {
+                  withSonarQubeEnv('sonarqube') {
                     sh 'mvn verify -DskipTests=true'
-                    sh 'mvn sonar:sonar'
-                }
+                    sh 'mvn sonar:sonar -Dsonar.login=$SONAR_CREDENTIALS'
+        }
             }
         }
 
@@ -45,14 +46,14 @@ pipeline {
                 script {
                     nexusPublisher(
                         nexusInstanceId: 'nexus3',
-                        nexusRepositoryId: 'Maven-repo', // Replace 'Maven-repo' with your actual Nexus repository ID
+                        nexusRepositoryId: 'Maven-',
                         packages: [
                             [
                                 $class: 'MavenPackage',
                                 mavenAssetList: [
                                     [
                                         classifier: '',
-                                        extension: 'jar',
+                                        extension: '',
                                         filePath: 'target/achat-1.0.jar'
                                     ]
                                 ],
@@ -82,7 +83,8 @@ pipeline {
                     sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
                     
                     // Push Docker image
-                    sh 'docker push your-dockerhub-username/your-image-name' // Replace with actual Docker Hub repo and image name
+                    // Uncomment and set the correct image name
+                    // sh 'docker push your-dockerhub-username/your-image-name'
                 }
             }
         }
