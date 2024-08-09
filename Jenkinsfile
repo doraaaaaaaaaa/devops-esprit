@@ -7,7 +7,9 @@ pipeline {
     }
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub'),
+        SONAR_CREDENTIALS = credentials('sonar'),
+        NEXUS_CREDENTIALS = credentials('nexus')
     }
 
     stages {
