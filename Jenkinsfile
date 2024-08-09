@@ -8,7 +8,7 @@ pipeline {
 
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub')
-        SONAR_CREDENTIALS = credentials('squ_d5e128daf34753c948eaaff3789a3608ee5ee159')
+        SONAR_CREDENTIALS = credentials('sonar')
         // NEXUS_CREDENTIALS = credentials('nexus')
     }
 
@@ -36,7 +36,7 @@ pipeline {
             steps {
                   withSonarQubeEnv('sonarqube') {
                     sh 'mvn verify -DskipTests=true'
-                    sh 'mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN'
+                    sh 'mvn sonar:sonar -Dsonar.login=$SONAR_CREDENTIALS'
         }
             }
         }
