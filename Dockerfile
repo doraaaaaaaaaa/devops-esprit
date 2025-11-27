@@ -1,3 +1,5 @@
+
+
 # Lightweight Java Runtime (JRE) only — ~110MB
 FROM eclipse-temurin:21-jre-alpine
 
