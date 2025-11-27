@@ -1,11 +1,14 @@
-# Base image avec Java 21
-FROM openjdk:21-jdk
+# Base image avec JDK 21
+FROM eclipse-temurin:21-jdk
 
 # Répertoire de travail dans le conteneur
 WORKDIR /app
 
-# Copier le JAR compilé depuis target/
-COPY target/*.jar app.jar
+# Copier le projet dans le conteneur
+COPY . /app
 
-# Commande pour lancer l'application
-CMD ["java", "-jar", "app.jar"]
+# Build Maven (sans exécuter les tests)
+RUN ./mvnw clean package -DskipTests
+
+# Lancer l'application
+CMD ["java", "-jar", "target/myapp.jar"]
