@@ -1,14 +1,21 @@
-# Base image avec JDK 21
-FROM eclipse-temurin:21-jdk
+# Étape 1 : Choisir l'image de base
+FROM alpine:latest
 
-# Répertoire de travail dans le conteneur
+# Étape 2 : Installer OpenJDK 21 et Maven
+RUN apk add --no-cache openjdk21 maven bash
+
+# Étape 3 : Créer un dossier pour ton application
 WORKDIR /app
 
-# Copier le projet dans le conteneur
+# Étape 4 : Copier les fichiers de ton projet dans l'image
 COPY . /app
 
-# Build Maven (sans exécuter les tests)
-RUN ./mvnw clean package -DskipTests
+# Étape 5 : Builder l'application avec Maven
+RUN mvn clean package -DskipTests
 
-# Lancer l'application
-CMD ["java", "-jar", "target/myapp.jar"]
+# Étape 6 : Exposer un port (80 ici, si ton app l'utilise)
+EXPOSE 80
+
+# Étape 7 : Lancer l'application
+# Remplace 'monapp.jar' par le nom réel de ton jar généré
+CMD ["java", "-jar", "target/monapp.jar"]
