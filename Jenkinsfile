@@ -7,92 +7,101 @@ pipeline {
     }
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
-        SONAR_CREDENTIALS = credentials('sonar')
-       // NEXUS_CREDENTIALS = credentials('nexus')
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub')   // Docker Hub credentials
+        DOCKER_IMAGE = 'dorra7/devops-esprit'              // Nom du repo Docker Hub
+        DOCKER_TAG = 'latest'                              // Tag Docker
+        SONAR_CREDENTIALS = credentials('sonar')          // Token SonarQube
     }
 
     stages {
-        stage('Git Clone') {
+
+        stage('GIT Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/doraaaaaaaaaa/devops-esprit'
+                git branch: 'main',
+                    changelog: false,
+                    credentialsId: 'jenkins-github', 
+                    url: 'https://github.com/doraaaaaaaaaa/devops-esprit.git'
             }
         }
 
-        stage('Clean and Package') {
-            steps {
-                sh 'mvn clean install -DskipTests=true -U'
-
-            }
-        }
-
-        stage('Run Tests') {
-            steps {
-                sh 'mvn test'
-            }
-        }
-
-        stage('SonarQube') {
-            steps {
-                  withSonarQubeEnv('sonarqube') {
-                    sh 'mvn verify -DskipTests=true'
-                    sh 'mvn sonar:sonar -Dsonar.login=$SONAR_CREDENTIALS'
-        }
-            }
-        }
-
-        stage('Nexus') {
+        stage('Secret Scan') {
             steps {
                 script {
-                    nexusPublisher(
-                        nexusInstanceId: 'nexus3',
-                        nexusRepositoryId: 'Maven-',
-                        packages: [
-                            [
-                                $class: 'MavenPackage',
-                                mavenAssetList: [
-                                    [
-                                        classifier: '',
-                                        extension: '',
-                                        filePath: 'target/achat-1.0.jar'
-                                    ]
-                                ],
-                                mavenCoordinate: [
-                                    artifactId: 'achat',
-                                    groupId: 'com.esprit.examen',
-                                    packaging: 'jar',
-                                    version: '1.0'
-                                ]
-                            ]
-                        ]
-                    )
+                    echo "🔍 Running Gitleaks secret scan on the latest commit only..."
+                    sh 'rm -f gitleaks-report.json'
+                    def status = sh(script: "gitleaks detect --source . --commit=HEAD --no-banner --exit-code=1 --report-path=gitleaks-report.json -v", returnStatus: true)
+                    
+                    if (status != 0) {
+                        echo "❌ Secrets detected in the latest commit! Check gitleaks-report.json for details."
+                    } else {
+                        echo "✅ No secrets found in the latest commit."
+                    }
                 }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonarqube') {
+                    sh 'mvn verify -DskipTests=true'
+                    sh "mvn sonar:sonar -Dsonar.login=${SONAR_CREDENTIALS}"
+                }
+            }
+        }
+
+        stage('Maven Build') {
+            steps {
+                echo '📦 Compilation du projet avec Maven...'
+                sh 'mvn clean package -DskipTests'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'ansible-playbook ansible-playbook.yml'
+                echo '🐳 Build Docker image...'
+                sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
             }
         }
+
+stage('Trivy Scan') {
+            steps {
+                echo '🔎 Scan de sécurité complet du projet avec Trivy...'
+                sh '''
+                    set -e
+                    echo "📁 Démarrage du scan Trivy (config + dépendances + secrets)..."
+
+                    # Lancer le scan Trivy sur tout le projet
+                    trivy fs . \
+                        --scanners vuln,config,secret \
+                        --severity HIGH,CRITICAL \
+                        --ignore-unfixed \
+                        --no-progress \
+                        --format json \
+                        --output trivy-full-report.json
+
+                    echo "✅ Scan terminé. Rapport généré : trivy-full-report.json"
+                '''
+            }   
+}
 
         stage('Push Docker Image') {
             steps {
                 script {
-                    // Logging in to Docker Hub
-                    sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
-                    
-                    // Push Docker image
-                    // Uncomment and set the correct image name
-                    // sh 'docker push your-dockerhub-username/your-image-name'
+                    echo '🔐 Login to Docker Hub and push image...'
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub') {
+                        sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    }
                 }
             }
         }
+    }
 
-        stage('Docker Compose') {
-            steps {
-                sh 'docker-compose -f docker-compose-app.yml up -d'
-            }
+    post {
+        success {
+            echo "✅ Pipeline terminée avec succès !"
+        }
+        failure {
+            echo "❌ La pipeline a échoué."
         }
     }
 }
