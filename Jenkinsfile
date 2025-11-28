@@ -43,25 +43,21 @@ pipeline {
         }*/
 
 
-stage('Secret Scan') {
-    steps {
-        script {
-            echo "🔍 Running Gitleaks secret scan on full repo..."
-            sh '''
-                rm -f gitleaks-report.json || true
-
-                gitleaks detect \
-                    --source . \
-                    --report-path gitleaks-report.json \
-                    --report-format json \
-                    --no-banner \
-                    --exit-code 0 \
-                    -v
-            '''
-            echo "📄 Rapport généré : gitleaks-report.json"
-        }
-    }
-}
+        stage('Gitleaks Scan') {
+            steps {
+                script {
+                    echo "🔍 Running Gitleaks secret scan on the latest commit only..."
+                    sh 'rm -f gitleaks-report.json'
+                    def status = sh(script: "gitleaks detect --source . --commit=HEAD --no-banner --exit-code=1 --report-path=gitleaks-report.json -v", returnStatus: true)
+                    
+                    if (status != 0) {
+                        echo "❌ Secrets detected in the latest commit! Check gitleaks-report.json for details."
+                    } else {
+                        echo "✅ No secrets found in the latest commit."
+                    }
+                }
+            }
+        }   
 
 
 
