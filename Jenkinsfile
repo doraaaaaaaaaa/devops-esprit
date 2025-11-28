@@ -1,5 +1,5 @@
 
-//trivy dast
+//trivy dast22
 pipeline {
     agent any
 
