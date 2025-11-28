@@ -1,5 +1,3 @@
-
-//test webhook 
 pipeline {
     agent any
 
@@ -26,33 +24,21 @@ pipeline {
             }
         }
 
-//test
-stage('Secrets Scan - Gitleaks') {
-    steps {
-        echo "🕵️‍♂️ Scanning for exposed secrets..."
-        sh '''
-        # Lancer le scan avec Gitleaks
-        gitleaks detect --source=. --no-git --report-format=json --report-path=gitleaks-report.json
-
-        # Vérifier le nombre de secrets détectés
-        if command -v jq >/dev/null 2>&1; then
-            leaks=$(jq 'length' gitleaks-report.json)
-            if [ "$leaks" -gt 0 ]; then
-                echo "⚠️ Gitleaks found $leaks potential secrets. Check gitleaks-report.json"
-                exit 1
-            else
-                echo "✅ No secrets found by Gitleaks!"
-            fi
-        else
-            echo "⚠️ jq not installed, skipping leak count check."
-        fi
-        '''
-    }
-}
-
-
-
-
+        stage('Secret Scan') {
+            steps {
+                script {
+                    echo "🔍 Running Gitleaks secret scan on the latest commit only..."
+                    sh 'rm -f gitleaks-report.json'
+                    def status = sh(script: "gitleaks detect --source . --commit=HEAD --no-banner --exit-code=1 --report-path=gitleaks-report.json -v", returnStatus: true)
+                    
+                    if (status != 0) {
+                        echo "❌ Secrets detected in the latest commit! Check gitleaks-report.json for details."
+                    } else {
+                        echo "✅ No secrets found in the latest commit."
+                    }
+                }
+            }
+        }
 
         stage('SonarQube Analysis') {
             steps {
