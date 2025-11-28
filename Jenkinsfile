@@ -7,10 +7,10 @@ pipeline {
     }
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub')   // Docker Hub credentials
-        DOCKER_IMAGE = 'dorra7/devops-esprit'              // Nom du repo Docker Hub
-        DOCKER_TAG = 'latest'                              // Tag Docker
-        SONAR_CREDENTIALS = credentials('sonar')          // Token SonarQube
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
+        DOCKER_IMAGE = 'dorra7/devops-esprit'
+        DOCKER_TAG = 'latest'
+        SONAR_CREDENTIALS = credentials('sonar')
     }
 
     stages {
@@ -24,17 +24,17 @@ pipeline {
             }
         }
 
-        stage('Secret Scan') {
+        stage('Secret Scan - Gitleaks') {
             steps {
                 script {
-                    echo "🔍 Running Gitleaks secret scan on the latest commit only..."
+                    echo "🔍 Running Gitleaks secret scan on the latest commit..."
                     sh 'rm -f gitleaks-report.json'
                     def status = sh(script: "gitleaks detect --source . --commit=HEAD --no-banner --exit-code=1 --report-path=gitleaks-report.json -v", returnStatus: true)
-                    
                     if (status != 0) {
-                        echo "❌ Secrets detected in the latest commit! Check gitleaks-report.json for details."
+                        echo "❌ Secrets detected! Check gitleaks-report.json"
+                        error("Pipeline failed: secrets detected by Gitleaks")
                     } else {
-                        echo "✅ No secrets found in the latest commit."
+                        echo "✅ No secrets found"
                     }
                 }
             }
@@ -62,27 +62,36 @@ pipeline {
                 sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
             }
         }
-//test
-stage('Trivy Scan') {
+
+        stage('Run Application for DAST') {
             steps {
-                echo '🔎 Scan de sécurité complet du projet avec Trivy...'
+                echo '🚀 Lancement du conteneur pour DAST...'
+                sh 'docker run -d --name myapp -p 8080:8080 ${DOCKER_IMAGE}:${DOCKER_TAG}'
+                // Optionnel: attendre quelques secondes pour que l'app démarre
+                sh 'sleep 10'
+            }
+        }
+
+        stage('Trivy DAST Scan') {
+            steps {
+                echo '🔎 Scan dynamique avec Trivy...'
                 sh '''
-                    set -e
-                    echo "📁 Démarrage du scan Trivy (config + dépendances + secrets)..."
-
-                    # Lancer le scan Trivy sur tout le projet
-                    trivy fs . \
-                        --scanners vuln,config,secret \
-                        --severity HIGH,CRITICAL \
-                        --ignore-unfixed \
-                        --no-progress \
-                        --format json \
-                        --output trivy-full-report.json
-
-                    echo "✅ Scan terminé. Rapport généré : trivy-full-report.json"
+                    trivy http --scanners vuln,config,secret --severity HIGH,CRITICAL http://localhost:8080 \
+                        --output trivy-dast-report.json --format json
+                    echo "✅ Trivy DAST report generated: trivy-dast-report.json"
                 '''
-            }   
-}
+            }
+        }
+
+        stage('Stop Application') {
+            steps {
+                echo '🛑 Arrêt du conteneur...'
+                sh '''
+                    docker stop myapp
+                    docker rm myapp
+                '''
+            }
+        }
 
         stage('Push Docker Image') {
             steps {

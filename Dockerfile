@@ -1,13 +1,14 @@
-
-
-# Lightweight Java Runtime (JRE) only — ~110MB
+# Utiliser une image légère Java JRE 21
 FROM eclipse-temurin:21-jre-alpine
 
-# Copy the compiled JAR
-COPY target/*.jar /app.jar
+# Définir le répertoire de travail dans le conteneur
+WORKDIR /app
 
-# Expose the port used by your Spring Boot app
+# Copier le JAR compilé
+COPY target/*.jar app.jar
+
+# Exposer le port de l'application
 EXPOSE 8080
 
-# Start the application
-CMD ["java", "-jar", "/app.jar"]
+# Démarrer l'application
+ENTRYPOINT ["java", "-jar", "app.jar"]
