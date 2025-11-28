@@ -26,7 +26,7 @@ pipeline {
             }
         }
 
-
+//test
 stage('Secrets Scan - Gitleaks') {
     steps {
         echo "🕵️‍♂️ Scanning for exposed secrets..."
