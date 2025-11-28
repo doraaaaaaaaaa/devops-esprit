@@ -62,7 +62,7 @@ pipeline {
                 sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
             }
         }
-
+//test
 stage('Trivy Scan') {
             steps {
                 echo '🔎 Scan de sécurité complet du projet avec Trivy...'
