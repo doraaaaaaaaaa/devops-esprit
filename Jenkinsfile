@@ -27,78 +27,29 @@ pipeline {
         }
 
 
-
-
-   /* stage('Secret Scan') {
+stage('Secrets Scan - Gitleaks') {
     steps {
-        script {
-            echo "🔍 Running Gitleaks secret scan on the latest commit only..."
-            
-            // Supprime l'ancien rapport pour éviter faux positif
-            sh 'rm -f gitleaks-report.json'
+        echo "🕵️‍♂️ Scanning for exposed secrets..."
+        sh '''
+        # Lancer le scan avec Gitleaks
+        gitleaks detect --source=. --no-git --report-format=json --report-path=gitleaks-report.json
 
-            // Scanner uniquement le dernier commit
-            def status = sh(script: "gitleaks detect --source . --commit=HEAD --no-banner --exit-code=1 --report-path=gitleaks-report.json -v", returnStatus: true)
-            
-            if (status != 0) {
-                echo "❌ Secrets detected in the latest commit! Check gitleaks-report.json for details."
-
-                 error("❌ Secrets detected by Gitleaks!")
-            } else {
-                echo "✅ No secrets found in the latest commit."
-            }
-        }
+        # Vérifier le nombre de secrets détectés
+        if command -v jq >/dev/null 2>&1; then
+            leaks=$(jq 'length' gitleaks-report.json)
+            if [ "$leaks" -gt 0 ]; then
+                echo "⚠️ Gitleaks found $leaks potential secrets. Check gitleaks-report.json"
+                exit 1
+            else
+                echo "✅ No secrets found by Gitleaks!"
+            fi
+        else
+            echo "⚠️ jq not installed, skipping leak count check."
+        fi
+        '''
     }
 }
-*/
 
-stage('Secret Scan') {
-    steps {
-        script {
-            echo "🔍 Running Gitleaks secret scan..."
-
-            // Toujours supprimer l'ancien rapport
-            sh "rm -f gitleaks-report.json || true"
-
-            // Lancer le scan (ne casse pas la pipeline ici)
-            sh '''
-                gitleaks detect \
-                    --source . \
-                    --no-banner \
-                    --exit-code 0 \
-                    --report-format json \
-                    --report-path gitleaks-report.json \
-                    -v
-            '''
-
-            // Charger le rapport JSON
-            def reportExists = fileExists 'gitleaks-report.json'
-
-            if (!reportExists) {
-                echo "⚠️ Aucun fichier gitleaks-report.json généré !"
-                error("❌ Gitleaks n'a pas généré de rapport — pipeline stoppée.")
-            }
-
-            def report = readJSON file: 'gitleaks-report.json'
-
-            if (report?.findings?.size() > 0) {
-                echo "❌ ${report.findings.size()} secrets détectés !"
-                echo "➡️ Rapport disponible : gitleaks-report.json"
-
-                // STOP PIPELINE
-                error("❌ Pipeline arrêtée : secrets détectés par Gitleaks.")
-            } else {
-                echo "✅ Aucun secret trouvé."
-            }
-        }
-    }
-
-    post {
-        always {
-            archiveArtifacts artifacts: 'gitleaks-report.json', onlyIfSuccessful: false
-        }
-    }
-}
 
 
 
