@@ -68,9 +68,8 @@ pipeline {
         stage('Run Application for DAST') {
             steps {
                 echo '🚀 Lancement du conteneur pour DAST...'
-                sh 'docker run -d --name myapp -p 8080:8080 ${DOCKER_IMAGE}:${DOCKER_TAG}'
-                // Optionnel: attendre quelques secondes pour que l'app démarre
-                sh 'sleep 10'
+                sh 'docker run -d --name myapp -p 8081:80 ${DOCKER_IMAGE}:${DOCKER_TAG}'
+                
             }
         }
 
